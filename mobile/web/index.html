@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <title>SafeRoute</title>
+  <!-- On utilise flutter.js pour un contrôle total sur l'initialisation -->
+  <script src="flutter.js" defer></script>
+</head>
+<body>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Vérification de la présence du loader
+      if (!_flutter || !_flutter.loader) {
+        console.error("Le loader Flutter n'est pas chargé.");
+        return;
+      }
+      _flutter.loader.loadEntrypoint({
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine({
+            renderer: "html", // On force le mode HTML pour éviter gstatic
+          }).then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

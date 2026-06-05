@@ -1,0 +1,54 @@
+# Root gitignore for the project
+
+# Flutter/Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/coverage/
+mobile/analysis_options.yaml.g.part
+mobile/.metadata
+mobile/saferoute.iml
+mobile/.idea/
+
+# Android Studio / Xcode
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/.last_build_id
+mobile/ios/.symlinks/
+mobile/ios/Pods/
+mobile/ios/Podfile.lock
+
+# Python (Backend)
+backend/__pycache__/
+backend/cache/
+backend/*.db
+backend/*.sqlite3
+backend/venv/
+backend/.venv/
+*.pyc
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
