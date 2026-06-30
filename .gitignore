@@ -18,6 +18,7 @@ mobile/android/app/profile/
 mobile/android/app/release/
 mobile/android/local.properties
 mobile/android/key.properties
+mobile/android/app/safe_route_key.jks
 mobile/android/.gradle/
 mobile/android/app/build/
 mobile/ios/Flutter/Generated.xcconfig
@@ -47,7 +48,9 @@ backend/.venv/
 *.sln
 *.swp
 
-# OS Files
+# iOS folder ignored entirely
+mobile/ios/
+
 .DS_Store
 Thumbs.db
 desktop.ini

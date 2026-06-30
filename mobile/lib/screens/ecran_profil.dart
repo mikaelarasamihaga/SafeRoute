@@ -14,8 +14,6 @@ class EcranProfil extends StatefulWidget {
 class _EcranProfilState extends State<EcranProfil> {
   String _nom = "Utilisateur SafeRoute";
   String _groupeSanguin = "O+";
-  bool _alertesProximite = true;
-  bool _guidageVocal = false;
 
   @override
   void initState() {
@@ -26,14 +24,10 @@ class _EcranProfilState extends State<EcranProfil> {
   Future<void> _chargerPreferences() async {
     final nom = await ServiceStorage.loadProfileNom();
     final gs = await ServiceStorage.loadBloodGroup();
-    final alertes = await ServiceStorage.loadAlertes();
-    final guidage = await ServiceStorage.loadGuidageVocal();
     if (mounted) {
       setState(() {
         _nom = nom;
         _groupeSanguin = gs;
-        _alertesProximite = alertes;
-        _guidageVocal = guidage;
       });
     }
   }
@@ -216,36 +210,6 @@ class _EcranProfilState extends State<EcranProfil> {
                       themeProvider.basculerTheme();
                     },
                   ),
-                  const Divider(height: 1),
-
-                  // Alert Switch
-                  SwitchListTile(
-                    secondary: const Icon(Icons.add_alert_rounded, color: ThemeSafeRoute.orangeDanger),
-                    title: const Text("Alertes de Proximité"),
-                    subtitle: const Text("Notifier quand un danger est proche"),
-                    value: _alertesProximite,
-                    onChanged: (val) {
-                      setState(() {
-                        _alertesProximite = val;
-                      });
-                      ServiceStorage.saveAlertes(val);
-                    },
-                  ),
-                  const Divider(height: 1),
-
-                  // Vocal guide switch
-                  SwitchListTile(
-                    secondary: const Icon(Icons.volume_up_rounded, color: ThemeSafeRoute.vertSecurite),
-                    title: const Text("Guidage Vocal"),
-                    subtitle: const Text("Activer la synthèse vocale"),
-                    value: _guidageVocal,
-                    onChanged: (val) {
-                      setState(() {
-                        _guidageVocal = val;
-                      });
-                      ServiceStorage.saveGuidageVocal(val);
-                    },
-                  ),
                 ],
               ),
             ),
@@ -260,7 +224,7 @@ class _EcranProfilState extends State<EcranProfil> {
                   const ListTile(
                     leading: Icon(Icons.info_outline_rounded),
                     title: Text("Version de l'application"),
-                    trailing: Text("1.0.0+1", style: TextStyle(color: ThemeSafeRoute.texteSecondaire)),
+                    trailing: Text("1.0", style: TextStyle(color: ThemeSafeRoute.texteSecondaire)),
                   ),
                   const Divider(height: 1),
                   ListTile(

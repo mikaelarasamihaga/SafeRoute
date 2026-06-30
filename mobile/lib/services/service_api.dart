@@ -7,18 +7,92 @@ class ServiceApi {
   static const String _osrmBase = 'https://router.project-osrm.org';
   static const String _nominatimBase = 'https://nominatim.openstreetmap.org';
 
-  // Backend local (signalements / refuges uniquement)
-  static const String _backendUrl = 'http://10.0.2.2:8000';
+  // Backend local (calcul d'itinéraire, signalements et refuges)
+  // NOTE :
+  // - Sur émulateur Android : 'http://10.0.2.2:8000' fonctionne par défaut.
+  // - Sur un vrai téléphone Android (APK) : remplacez '10.0.2.2' par l'adresse IP de votre PC sur le réseau Wi-Fi (ex: 'http://192.168.1.50:8000') et assurez-vous que les deux appareils sont sur le même réseau.
+  static const String _backendUrl = 'http://192.168.137.248:8000';
 
   static const Map<String, String> _nominatimHeaders = {
     'User-Agent': 'SafeRoute/1.0 (mg.saferoute.app)',
     'Accept-Language': 'fr',
   };
 
-  // ─── Calcul d'itinéraire via OSRM public ────────────────────────────────────
+  // ─── Calcul d'itinéraire (Backend Local d'abord, Fallback OSRM en cas d'erreur) ───
   Future<Map<String, dynamic>?> obtenirItineraireSur(
       LatLng depart, LatLng arrivee) async {
     try {
+      print('Tentative de calcul d\'itinéraire via le backend local : $_backendUrl...');
+      final response = await http.post(
+        Uri.parse('$_backendUrl/itineraire'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'depart': [depart.latitude, depart.longitude],
+          'arrivee': [arrivee.latitude, arrivee.longitude],
+        }),
+      ).timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final itineraire = data['itineraire'];
+        if (itineraire != null) {
+          // Safe parser – accepts any dynamic value and casts to List<num>
+          LatLng parseLatLng(dynamic pt) {
+            final List<dynamic> list = pt as List<dynamic>;
+            return LatLng((list[0] as num).toDouble(), (list[1] as num).toDouble());
+          }
+          
+          final rapidePoints = (itineraire['rapide']['points'] as List)
+              .map<LatLng>((pt) => parseLatLng(pt))
+              .toList();
+          final securisePoints = (itineraire['securise']['points'] as List)
+              .map<LatLng>((pt) => parseLatLng(pt))
+              .toList();
+          
+          final List<dynamic> rapideInstRaw = itineraire['rapide']['instructions'] ?? [];
+          final List<Map<String, dynamic>> rapideInst = rapideInstRaw.map<Map<String, dynamic>>((inst) {
+            return {
+              'rue': inst['rue']?.toString() ?? 'Rue sans nom',
+              'distance': (inst['distance'] as num?)?.toInt() ?? 0,
+            };
+          }).toList();
+
+          final List<dynamic> securiseInstRaw = itineraire['securise']['instructions'] ?? [];
+          final List<Map<String, dynamic>> securiseInst = securiseInstRaw.map<Map<String, dynamic>>((inst) {
+            return {
+              'rue': inst['rue']?.toString() ?? 'Rue sans nom',
+              'distance': (inst['distance'] as num?)?.toInt() ?? 0,
+            };
+          }).toList();
+
+          print('Itinéraire calculé avec succès par le backend.');
+          return {
+            'rapide': {
+              'points': rapidePoints,
+              'instructions': rapideInst,
+              'distance': (itineraire['rapide']['distance_totale'] as num?)?.toInt() ?? 0,
+            },
+            'securise': {
+              'points': securisePoints,
+              'instructions': securiseInst,
+              'distance': (itineraire['securise']['distance_totale'] as num?)?.toInt() ?? 0,
+            }
+          };
+        }
+      }
+    } catch (e) {
+      print('Échec de la connexion au backend local, utilisation du fallback OSRM public : $e');
+    }
+
+    // Fallback OSRM public
+    return obtenirItineraireSurOSRM(depart, arrivee);
+  }
+
+  // ─── Calcul d'itinéraire de secours via OSRM public ───────────────────────────
+  Future<Map<String, dynamic>?> obtenirItineraireSurOSRM(
+      LatLng depart, LatLng arrivee) async {
+    try {
+      print('Calcul d\'itinéraire via OSRM public...');
       // OSRM attend les coordonnées au format longitude,latitude
       final coords =
           '${depart.longitude},${depart.latitude};${arrivee.longitude},${arrivee.latitude}';
@@ -41,23 +115,26 @@ class ServiceApi {
         final List<dynamic> rawCoords =
             route['geometry']['coordinates'] as List;
         final List<LatLng> points =
-            rawCoords.map((c) => LatLng(c[1] as double, c[0] as double)).toList();
+            rawCoords.map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble())).toList();
 
         // Extraction des instructions de navigation depuis les étapes
         final List<dynamic> steps =
             (route['legs'][0]['steps'] as List);
-        final List<String> instructions = steps.map<String>((step) {
+        final List<Map<String, dynamic>> instructions = steps.map<Map<String, dynamic>>((step) {
           final maneuver = step['maneuver'];
           final type = maneuver['type'] ?? '';
           final modifier = maneuver['modifier'] ?? '';
           final name = step['name'] ?? '';
-          return _traduireInstruction(type, modifier, name);
+          final text = _traduireInstruction(type, modifier, name);
+          final dist = (step['distance'] as num?)?.toInt() ?? 0;
+          return {
+            'rue': text,
+            'distance': dist,
+          };
         }).toList();
 
         final int distanceM = (route['distance'] as num).round();
 
-        // On retourne le même itinéraire pour "rapide" et "securise"
-        // (OSRM propose un seul trajet ; on garde la structure attendue)
         final trajet = {
           'points': points,
           'instructions': instructions,
